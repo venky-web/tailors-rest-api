@@ -4,8 +4,9 @@ from firebase_admin import auth
 from firebase_admin import credentials
 
 from .exceptions import FirebaseError, InvalidAuthToken, NoAuthToken
+import env_variables
 
-cred = credentials.Certificate("firebase/cred/m-tailors-firebase-adminsdk-acjug-526e7969cf.json")
+cred = credentials.Certificate(env_variables.FIREBASE_CONFIG_FILE)
 firebase_app = firebase_admin.initialize_app(cred)
 
 
