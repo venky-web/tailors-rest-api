@@ -10,17 +10,17 @@ class UserAdmin(BaseUserAdmin):
     model = User
     ordering = ("-joined_on",)
     list_filter = ("email", "is_active", "user_type")
-    list_display = ("email", "user_type", "is_active", "joined_on")
-    search_fields = ("email", "user_type")
+    list_display = ("id", "email", "first_name", "last_name", "user_type", "is_active", "joined_on")
+    search_fields = ("email", "user_type", "first_name", "last_name")
     fieldsets = (
         (None, {"fields": ("email", "password",)}),
-        ("Personal info", {"fields": ("user_type",)}),
+        ("Personal info", {"fields": ("user_type", "first_name", "last_name")}),
         ("Permissions", {"fields": ("is_superuser",)}),
     )
     add_fieldsets = (
         (None, {
             "classes": ("wide",),
-            "fields": ("email", "user_type", "password"),
+            "fields": ("first_name", "last_name", "email", "user_type", "password"),
         }),
     )
 

@@ -35,6 +35,15 @@ def generate_refresh_token(user):
     return refresh_token
 
 
+# class CSRFCheck(CsrfViewMiddleware):
+#     """CSRF Middleware to check CSRF COOKIE"""
+#     def __init__(self, get_response):
+#         self.get_response = get_response
+#
+#     def _reject(self, request, reason):
+#         return reason
+
+
 class JWTAuthentication(BaseAuthentication):
     """Authenticates every request"""
     def authenticate(self, request):
@@ -58,4 +67,13 @@ class JWTAuthentication(BaseAuthentication):
         if not user.is_active:
             raise exceptions.AuthenticationFailed("User is not active")
 
+        # self.enforce_csrf(request)
         return user, None
+
+    # def enforce_csrf(self, request):
+    #     check = CSRFCheck()
+    #     check.process_request(request)
+    #     reason = check.process_view(request, None, (), {})
+    #     print(reason)
+    #     if reason:
+    #         raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)

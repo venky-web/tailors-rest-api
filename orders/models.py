@@ -1,10 +1,11 @@
 from django.db import models
-from django.conf import settings
+
+from user.models import User
 
 
 class Order(models.Model):
     """Model to manage orders"""
-    customer_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    customer_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     total_amount = models.DecimalField(max_digits=9, decimal_places=2)
     delivery_date = models.DateTimeField()
     order_status = models.CharField(max_length=64)
@@ -14,15 +15,14 @@ class Order(models.Model):
     updated_on = models.DateTimeField()
     created_by = models.CharField(max_length=255)
     updated_by = models.CharField(max_length=255)
+    is_deleted = models.CharField(max_length=1, default="N")
 
     class Meta:
         ordering = ("-created_on",)
 
     def __str__(self):
         """string representation of order item"""
-        return f"{self.customer_id}-{self.delivery_date}-{self.order_status}"
-
-
+        return f"{self.id}"
 
 
 class OrderItem(models.Model):
@@ -39,7 +39,8 @@ class OrderItem(models.Model):
     updated_by = models.CharField(max_length=255)
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField()
+    is_deleted = models.CharField(max_length=1, default="N")
 
     def __str__(self):
         """string representation of order item"""
-        return f"{self.item_type}-{self.delivery_date}-{self.status}"
+        return f"{self.id}"
