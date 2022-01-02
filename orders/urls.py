@@ -11,5 +11,5 @@ urlpatterns = [
     # path("", include(router.urls)),
     path("", views.OrderListCreateView.as_view(), name="orders"),
     path("<int:id>/", views.OrderUpdateDeleteView.as_view(), name="order_details"),
-    path("<int:order_id>/items", views.OrderItemListCreateView.as_view(), name="order_items"),
+    path("<int:order_id>/items/", views.OrderItemListCreateView.as_view(), name="order_items"),
 ]

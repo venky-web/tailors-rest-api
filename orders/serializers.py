@@ -19,7 +19,7 @@ class OrderSerializer(serializers.ModelSerializer):
     """serializes order model objects"""
     created_by = serializers.CharField(required=False)
     updated_by = serializers.CharField(required=False)
-    updated_on = serializers.DateTimeField(required=False)
+    delivery_date = serializers.CharField(required=False)
 
     class Meta:
         model = models.Order
@@ -28,12 +28,12 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Creates a new order object in db"""
-        validated_data["updated_on"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             user = request.user
+            validated_data.pop("request_user")
         else:
-            user = validated_data.pop("user")
+            user = validated_data.pop("request_user")
         validated_data["created_by"] = user.id
         validated_data["updated_by"] = user.id
         order = models.Order.objects.create(**validated_data)
@@ -41,19 +41,23 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """updates an order object with validated data"""
-        instance.customer_id = validated_data.get("'customer_id", instance.customer_id)
+        instance.customer = validated_data.get("'customer", instance.customer)
         instance.total_amount = validated_data.get("total_amount", instance.total_amount)
+        instance.paid_amount = validated_data.get("paid_amount", instance.paid_amount)
+        instance.discount = validated_data.get("discount", instance.discount)
         instance.delivery_date = validated_data.get("delivery_date", instance.delivery_date)
         instance.order_status = validated_data.get("order_status", instance.order_status)
         instance.comments = validated_data.get("comments", instance.comments)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
         instance.is_one_time_delivery = validated_data.get("is_one_time_delivery",
                                                            instance.is_one_time_delivery)
-        instance.updated_on = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
+        instance.updated_on = validated_data["updated_on"]
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             user = request.user
+            validated_data.pop("request_user")
         else:
-            user = validated_data.pop("user")
+            user = validated_data.pop("request_user")
         instance.updated_by = user.id
         instance.save()
         return instance
@@ -72,15 +76,13 @@ class OrderItemSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             request_user = request.user
+            validated_data.pop("request_user")
         else:
             request_user = validated_data.pop("request_user")
 
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
         validated_data["created_by"] = request_user.id
         validated_data["updated_by"] = request_user.id
-        validated_data["updated_on"] = now
-        print(validated_data)
-        validated_data["order_id"] = order
+        validated_data["order"] = order
         order_item = models.OrderItem.objects.create(**validated_data)
         update_order(request_user, order)
 
