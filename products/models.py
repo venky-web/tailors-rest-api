@@ -8,13 +8,14 @@ def product_image_file_path(instance, filename):
     """returns image path"""
     ext = filename.split(".")[-1]
     filename = f"{uuid.uuid4()}.{ext}"
-
     return os.path.join("product-images", filename)
 
 
 class Product(models.Model):
     """model for product and service"""
     name = models.CharField(_("Name"), max_length=255, unique=True)
+    category = models.CharField(max_length=255, default="")
+    units_available = models.IntegerField(default=0)
     price = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     cost = models.DecimalField(max_digits=7, decimal_places=2, default=0)
     product_code = models.CharField(max_length=10, unique=True)

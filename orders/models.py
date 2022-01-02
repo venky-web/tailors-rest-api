@@ -6,7 +6,9 @@ from user.models import User
 class Order(models.Model):
     """Model to manage orders"""
     customer_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    total_amount = models.DecimalField(max_digits=9, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    paid_amount = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=4, decimal_places=1, default=0)
     delivery_date = models.DateTimeField()
     order_status = models.CharField(max_length=64)
     comments = models.TextField(max_length=1024, default="")

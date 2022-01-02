@@ -88,7 +88,11 @@ class ProductDetailView(RetrieveUpdateDestroyAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         """returns a single product object"""
-        product = get_object_or_404(Product, pk=kwargs["id"])
+        queryset = self.get_queryset()
+        product = queryset.filter(pk=kwargs["id"]).first()
+        if not product:
+            return Response("Request obj is not found", status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.serializer_class(product)
         response_data = serializer.data
         images = get_product_images(kwargs["id"])
@@ -101,19 +105,34 @@ class ProductDetailView(RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         """updates a product obj"""
-        product = get_object_or_404(Product, pk=kwargs["id"])
+        queryset = self.get_queryset()
+        product = queryset.filter(pk=kwargs["id"]).first()
+        if not product:
+            return Response("Request obj is not found", status=status.HTTP_404_NOT_FOUND)
+
         serializer = self.serializer_class(product, data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         user = self.request.user
         serializer.save(request_user=user, updated_on=get_current_time())
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = serializer.data
+        images = get_product_images(kwargs["id"])
+        response_data["images"] = serializers.ProductImageSerializer(
+            images,
+            many=True,
+            context={"request": request}
+        ).data
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def delete(self, request, *args, **kwargs):
         """marks a product is_deleted to true"""
+        queryset = self.get_queryset()
+        product = queryset.filter(pk=kwargs["id"]).first()
+        if not product:
+            return Response("Request obj is not found", status=status.HTTP_404_NOT_FOUND)
+
         user = self.request.user
-        product = get_object_or_404(Product, pk=kwargs["id"])
         modified_product = self.serializer_class(product).data
         modified_product["is_deleted"] = True
         serializer = self.serializer_class(product, data=modified_product)
@@ -134,6 +153,13 @@ class ProductImageView(ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         """returns a list of product images"""
         product_id = kwargs["id"]
+        product = Product.objects.filter(pk=product_id, is_deleted=False).first()
+        if not product:
+            error = {
+                "message": f"Product with id ({product_id}) is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
         images = get_product_images(product_id)
         serializer = serializers.ProductImageSerializer(
             images,
@@ -145,9 +171,12 @@ class ProductImageView(ListCreateAPIView):
     def create(self, request, *args, **kwargs):
         """creates a new product image in server"""
         product_id = kwargs["id"]
-        product = get_object_or_404(Product, pk=product_id)
+        product = Product.objects.filter(pk=product_id, is_deleted=False).first()
         if not product:
-            return Response(f"Product with id {product_id} is not found", status=status.HTTP_400_BAD_REQUEST)
+            error = {
+                "message": f"Product with id ({product_id}) is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
         if not serializer.is_valid():
@@ -157,3 +186,79 @@ class ProductImageView(ListCreateAPIView):
         now = get_current_time()
         serializer.save(product=product, request_user=user, created_on=now, updated_on=now)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProductImageDetailView(RetrieveUpdateDestroyAPIView):
+    """product image detail view to retrieve, update and destroy"""
+    queryset = ProductImage.objects.all()
+    serializer_class = serializers.ProductImageSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def retrieve(self, request, *args, **kwargs):
+        """returns a product image with specified id"""
+        product_id = kwargs["id"]
+        product = Product.objects.filter(pk=product_id, is_deleted=False).first()
+        if not product:
+            error = {
+                "message": f"Product with id ({product_id}) is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        queryset = self.get_queryset()
+        product_image = queryset.filter(pk=kwargs["image_id"]).first()
+        if product_image:
+            serializer = self.get_serializer(product_image, many=False)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        error = {
+            "message": "Requested obj is not found"
+        }
+        return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+    def update(self, request, *args, **kwargs):
+        """updates a product image obj"""
+        product_id = kwargs["id"]
+        product = Product.objects.filter(pk=product_id, is_deleted=False).first()
+        if not product:
+            error = {
+                "message": f"Product with id ({product_id}) is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        queryset = self.get_queryset()
+        product_image = queryset.filter(pk=kwargs["image_id"]).first()
+        if not product_image:
+            error = {
+                "message": "Requested obj is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(product_image, data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = self.request.user
+        serializer.save(request_user=user, updated_on=get_current_time())
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """deletes a product image object in the db"""
+        product_id = kwargs["id"]
+        product = Product.objects.filter(pk=product_id, is_deleted=False).first()
+        if not product:
+            error = {
+                "message": f"Product with id ({product_id}) is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        queryset = self.get_queryset()
+        product_image = queryset.filter(pk=kwargs["image_id"]).first()
+        if not product_image:
+            error = {
+                "message": "Requested obj is not found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        product_image.image.delete()
+        product_image.delete()
+        return Response(None, status=status.HTTP_204_NO_CONTENT)
