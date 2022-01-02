@@ -11,7 +11,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ("id", "image_url", "image")
+        fields = ("id", "image_url", "image", "image_code")
         read_only_fields = ("id",)
         extra_kwargs = {
             "image": {"write_only": True}
@@ -28,6 +28,13 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """creates a new image details obj in DB"""
+        image_code = validated_data["image_code"]
+        if image_code:
+            image = ProductImage.objects.filter(image_code=image_code).first()
+            if image:
+                message = f"Product with code ({image_code}) exists"
+                raise serializers.ValidationError(message, code="validation")
+
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             request_user = request.user
@@ -35,10 +42,13 @@ class ProductImageSerializer(serializers.ModelSerializer):
         else:
             request_user = validated_data.pop("request_user")
 
-        print(validated_data)
+        product = validated_data["product"]
         validated_data["created_by"] = request_user.id
         validated_data["updated_by"] = request_user.id
         product_image = ProductImage.objects.create(**validated_data)
+        if len(product_image.image_code) == 0:
+            product_image.image_code = f"{product.product_code}-{product_image.id}"
+            product_image.save()
         return product_image
 
 
@@ -85,5 +95,5 @@ class ProductSerializer(serializers.ModelSerializer):
         instance.is_available = validated_data.get("is_available", instance.is_available)
 
         instance.updated_by = request_user.id
-        instance.save(using=self._db)
+        instance.save()
         return instance
