@@ -143,8 +143,68 @@ class OrderItemListCreateView(ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class OrderItemViewSet(ModelViewSet):
-    """viewSet for order items"""
-    queryset = OrderItem.objects.all()
+class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
+    """Retrieve, update and destroy view of order item"""
     serializer_class = serializers.OrderItemSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        """returns queryset of order items based on order id"""
+        order_id = self.kwargs["order_id"]
+        order_items = OrderItem.objects.filter(order_id=order_id, is_deleted="N")
+        return order_items
+
+    def retrieve(self, request, *args, **kwargs):
+        """retrieves order item with id"""
+        order_item_id = kwargs["order_item_id"]
+        order_item = self.get_queryset().filter(pk=order_item_id).first()
+        if not order_item:
+            error = {
+                "message": f"Order item with id({order_item_id}) cannot be found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.get_serializer(order_item)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        """updates an order item with id"""
+        order_item_id = kwargs["order_item_id"]
+        order_item = self.get_queryset().filter(pk=order_item_id).first()
+        if not order_item:
+            error = {
+                "message": f"Order item with id ({order_item_id}) cannot be found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(order_item, data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save(
+            request_user=request.user,
+            updated_on=f.get_current_time()
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        """marks an order item is_deleted to Y"""
+        order_item_id = kwargs["order_item_id"]
+        order_item = self.get_queryset().filter(pk=order_item_id).first()
+        if not order_item:
+            error = {
+                "message": f"Order item with id ({order_item_id}) could not be found"
+            }
+            return Response(error, status=status.HTTP_404_NOT_FOUND)
+
+        modified_order_item = self.serializer_class(order_item).data
+        modified_order_item["is_deleted"] = "Y"
+        serializer = self.serializer_class(order_item, data=modified_order_item)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save(
+            request_user=request.user,
+            updated_on=f.get_current_time()
+        )
+        return Response(serializer.data, status.HTTP_200_OK)

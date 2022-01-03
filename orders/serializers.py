@@ -3,6 +3,7 @@ from datetime import datetime
 from rest_framework import serializers
 
 from orders import models
+from helpers import functions as f
 
 
 def update_order(user, order):
@@ -11,7 +12,7 @@ def update_order(user, order):
         Args: User, Order
     """
     order.updated_by = user.id
-    order.updated_on = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
+    order.updated_on = f.get_current_time()
     order.save()
 
 
@@ -97,11 +98,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
         else:
             request_user = validated_data.pop("request_user")
 
-        for key in instance:
-            instance[key] = validated_data.get(key, instance[key])
-
+        instance.order = validated_data.get("order", instance.order)
+        instance.item_type = validated_data.get("item_type", instance.item_type)
+        instance.item_price = validated_data.get("item_price", instance.item_price)
+        instance.quantity = validated_data.get("quantity", instance.quantity)
+        instance.status = validated_data.get("status", instance.status)
+        instance.delivery_date = validated_data.get("delivery_date", instance.delivery_date)
+        instance.comments = validated_data.get("comments", instance.comments)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
         instance.updated_by = request_user.id
-        instance.updated_on = datetime.now().strftime("%Y-%m-%dT%H:%M:%S%z")
+        instance.updated_on = validated_data["updated_on"]
         instance.save()
         update_order(request_user, order)
 

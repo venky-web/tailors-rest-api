@@ -12,9 +12,6 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ("id", "image_url", "image", "image_code")
         read_only_fields = ("id",)
-        extra_kwargs = {
-            "image": {"write_only": True}
-        }
 
     def get_image_url(self, instance):
         """returns absolute url of image"""
