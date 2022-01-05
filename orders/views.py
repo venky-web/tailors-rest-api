@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -156,6 +157,7 @@ class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
 
     def retrieve(self, request, *args, **kwargs):
         """retrieves order item with id"""
+        get_object_or_404(Order, pk=kwargs["order_id"], is_deleted="N")
         order_item_id = kwargs["order_item_id"]
         order_item = self.get_queryset().filter(pk=order_item_id).first()
         if not order_item:
@@ -169,6 +171,7 @@ class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         """updates an order item with id"""
+        order = get_object_or_404(Order, pk=kwargs["order_id"], is_deleted="N")
         order_item_id = kwargs["order_item_id"]
         order_item = self.get_queryset().filter(pk=order_item_id).first()
         if not order_item:
@@ -189,6 +192,7 @@ class OrderItemDetailView(RetrieveUpdateDestroyAPIView):
 
     def destroy(self, request, *args, **kwargs):
         """marks an order item is_deleted to Y"""
+        get_object_or_404(Order, pk=kwargs["order_id"], is_deleted="N")
         order_item_id = kwargs["order_item_id"]
         order_item = self.get_queryset().filter(pk=order_item_id).first()
         if not order_item:
