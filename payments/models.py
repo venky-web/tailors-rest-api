@@ -17,6 +17,7 @@ class Payment(models.Model):
     updated_by = models.CharField(max_length=255, default="")
     created_on = models.DateTimeField()
     updated_on = models.DateTimeField()
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-payment_date",)

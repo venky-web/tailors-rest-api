@@ -1,11 +1,14 @@
 from rest_framework import serializers
 
 from payments.models import Payment
-from orders.models import Order
+from helpers import functions as f
 
 
 class PaymentSerializer(serializers.ModelSerializer):
     """serializes payment objects"""
+    payment_date = serializers.DateTimeField(required=False)
+    created_on = serializers.DateTimeField(required=False)
+    updated_on = serializers.DateTimeField(required=False)
 
     class Meta:
         model = Payment
@@ -14,13 +17,25 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """creates a new payment obj with validated data"""
-        order_id = validated_data["order"]
-        order = Order.objects.filter(pk=order_id).first()
-        if not order:
-            error = {
-                "message": f"Order with id ({order_id}) is not found"
-            }
-            raise serializers.ValidationError()
-
         request_user = validated_data.pop("request_user")
-        validated_data[""]
+        payment_date = validated_data.get("payment_date")
+        if not payment_date:
+            validated_data["payment_date"] = f.get_current_time()
+        validated_data["created_by"] = request_user.id
+        validated_data["updated_by"] = request_user.id
+        payment = Payment.objects.create(**validated_data)
+        return payment
+
+    def update(self, instance, validated_data):
+        """updates a payment with validated data"""
+        request_user = validated_data.pop("request_user")
+        instance.user = validated_data.get("user", instance.user)
+        instance.order = validated_data.get("order", instance.order)
+        instance.paid_amount = validated_data.get("paid_amount", instance.paid_amount)
+        instance.payment_date = validated_data.get("payment_date", instance.payment_date)
+        instance.mode_of_payment = validated_data.get("mode_of_payment", instance.mode_of_payment)
+        instance.is_deleted = validated_data.get("is_deleted", instance.is_deleted)
+        instance.updated_by = request_user.id
+        instance.updated_on = validated_data["updated_on"]
+        instance.save()
+        return instance
