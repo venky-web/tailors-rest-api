@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.utils.decorators import method_decorator
+from datetime import datetime
 
 from rest_framework import generics
 from rest_framework.views import APIView
@@ -65,6 +66,9 @@ def get_access_token(request):
     try:
         jwt_payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
+        raise exceptions.AuthenticationFailed("Refresh token is expired. Please login again")
+
+    if jwt_payload["expiry"] <= datetime.utcnow().timestamp() * 1000:
         raise exceptions.AuthenticationFailed("Refresh token is expired. Please login again")
 
     user = get_user_model().objects.filter(id=jwt_payload["user_id"]).first()

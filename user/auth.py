@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
-import datetime
+from datetime import datetime, timedelta
 
 import jwt
 from rest_framework.authentication import BaseAuthentication
@@ -9,8 +9,8 @@ from rest_framework import exceptions
 
 def generate_access_token(user):
     """Generates a new access token"""
-    expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5)
-    utc_time = datetime.datetime.utcnow()
+    expiry_time = datetime.utcnow() + timedelta(days=0, minutes=30)
+    utc_time = datetime.utcnow()
     access_token_payload = {
         "user_id": user["id"],
         "expiry": expiry_time.timestamp() * 1000,
@@ -23,8 +23,8 @@ def generate_access_token(user):
 
 def generate_refresh_token(user):
     """Generates a new refresh token"""
-    expiry_time = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-    utc_time = datetime.datetime.utcnow().timestamp() * 1000
+    expiry_time = datetime.utcnow() + timedelta(days=1)
+    utc_time = datetime.utcnow().timestamp() * 1000
     refresh_token_payload = {
         "user_id": user["id"],
         "expiry": expiry_time.timestamp() * 1000,
@@ -53,12 +53,14 @@ class JWTAuthentication(BaseAuthentication):
 
         try:
             access_token = auth_headers.split(" ")[1]
-            jwt_payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=['HS256'])
-
+            jwt_payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms='HS256')
         except jwt.ExpiredSignatureError:
             raise exceptions.AuthenticationFailed("Access token is expired")
         except IndexError:
             raise exceptions.AuthenticationFailed("Access token prefix is missing")
+
+        if jwt_payload["expiry"] <= datetime.utcnow().timestamp() * 1000:
+            raise exceptions.AuthenticationFailed("Access token is expired")
 
         user = get_user_model().objects.filter(id=jwt_payload["user_id"]).first()
         if user is None:

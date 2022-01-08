@@ -6,7 +6,7 @@ from orders.models import Order
 
 class Payment(models.Model):
     """payment model in db"""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                              related_name="payments", related_query_name="payment")
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments",
                               related_query_name="payment")
@@ -14,6 +14,9 @@ class Payment(models.Model):
     payment_date = models.DateTimeField()
     mode_of_payment = models.CharField(max_length=50, default="cash")
     created_by = models.CharField(max_length=255, default="")
+    updated_by = models.CharField(max_length=255, default="")
+    created_on = models.DateTimeField()
+    updated_on = models.DateTimeField()
 
     class Meta:
         ordering = ("-payment_date",)
